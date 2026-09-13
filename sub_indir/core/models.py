@@ -46,4 +46,4 @@ class SubtitleCandidate:
 
     @property
     def is_turkish(self) -> bool:
-        return self.lang.lower() in ["tr", "turkish", "türkçe"]
+        return self.lang.lower() in ["tr", "tur", "turkish", "türkçe"]

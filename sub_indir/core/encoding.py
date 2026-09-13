@@ -20,6 +20,14 @@ def _fix_mojibake(text: str) -> str:
                     return fixed
             except (UnicodeEncodeError, UnicodeDecodeError):
                 pass
+
+        # Direct dictionary fallback if full re-encoding fails (e.g. text contains non-Latin1 symbols)
+        mojibake_map = {
+            "Ã§": "ç", "Ã¶": "ö", "Ã¼": "ü", "Ä±": "ı", "ÅŸ": "ş", "ÄŸ": "ğ",
+            "Ã‡": "Ç", "Ã–": "Ö", "Ãœ": "Ü", "Ä°": "İ", "Åž": "Ş", "Äž": "Ğ",
+        }
+        for bad, good in mojibake_map.items():
+            text = text.replace(bad, good)
     return text
 
 

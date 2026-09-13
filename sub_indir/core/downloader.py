@@ -98,18 +98,25 @@ class SubtitleManager:
                 message="Eşleşen altyazı seçilemedi."
             )
 
-        _, sub_bytes = best_match
+        sub_filename, sub_bytes = best_match
         utf8_text = normalize_to_utf8(sub_bytes)
+
+        # Determine original subtitle extension (preserve .ass/.vtt instead of forcing .srt)
+        sub_ext = Path(sub_filename).suffix.lower() if sub_filename else ".srt"
+        if sub_ext not in {".srt", ".ass", ".ssa", ".vtt", ".sub"}:
+            sub_ext = ".srt"
 
         # Determine target file path
         if target_path:
             out_path = Path(target_path)
         elif video.path:
-            suffix = ".tr.srt" if add_language_suffix else ".srt"
-            out_path = video.path.with_suffix(suffix)
+            lang_suffix = f".tr{sub_ext}" if add_language_suffix else sub_ext
+            out_path = video.path.with_suffix(lang_suffix)
         else:
-            suffix = ".tr.srt" if add_language_suffix else ".srt"
-            out_path = Path.cwd() / f"{video.filename}{suffix}"
+            lang_suffix = f".tr{sub_ext}" if add_language_suffix else sub_ext
+            # Sanitize filename for Windows (remove : ? * < > | " chars)
+            safe_name = "".join(c if c not in ':?*<>|"' else '_' for c in video.filename)
+            out_path = Path.cwd() / f"{safe_name}{lang_suffix}"
 
         save_subtitle_file(utf8_text, out_path)
 

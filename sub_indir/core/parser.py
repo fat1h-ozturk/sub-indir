@@ -59,6 +59,15 @@ def parse_video(file_path_or_name: Union[str, Path]) -> VideoInfo:
     source = guess.get("source")
     screen_size = guess.get("screen_size")
     video_codec = guess.get("video_codec")
+
+    # guessit returns lists for multi-episode files (e.g. Show.S01E01-E02.mkv)
+    # Safely extract first element to prevent TypeError on int()
+    if isinstance(season, list):
+        season = season[0]
+    if isinstance(episode, list):
+        episode = episode[0]
+    if isinstance(year, list):
+        year = year[0]
     
     # TV vs Movie check
     is_tv = bool(season is not None or episode is not None or guess.get("type") == "episode")

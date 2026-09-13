@@ -82,9 +82,11 @@ Herhangi bir terminal penceresinde filmlerinizin/dizilerinizin olduğu dizine gi
 ### 1. Bulunulan Dizindeki Tüm Videoları Tarama (Subliminal Benzeri)
 Klasördeki tüm video dosyalarını tarar ve eksik Türkçe altyazıları otomatik indirir:
 ```bash
+sub-indir .
+# veya
 sub-indir download .
 ```
-*(Not: `.` yazmasanız bile varsayılan olarak bulunulan klasör taranır: `sub-indir download`)*
+*(Not: `.` yazmasanız bile varsayılan olarak bulunulan klasör taranır: `sub-indir`)*
 
 ### 2. Otomatik Mod (`-a` / `--auto`)
 Kullanıcıya sormadan en yüksek puanlı (en uyumlu) altyazıyı otomatik seçip indirir:

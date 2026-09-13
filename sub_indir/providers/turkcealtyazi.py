@@ -38,9 +38,11 @@ class TurkceAltyaziProvider(BaseProvider):
         with self._get_client() as client:
             # 1. Search for title on TurkceAltyazi
             query = video.title.strip()
-            search_url = f"{BASE_URL}/find.php?cat=sub&find={httpx.URL(query)}"
             try:
-                res = client.get(search_url)
+                res = client.get(
+                    f"{BASE_URL}/find.php",
+                    params={"cat": "sub", "find": query}
+                )
                 res.encoding = "utf-8"
             except Exception:
                 return []
@@ -148,11 +150,31 @@ class TurkceAltyaziProvider(BaseProvider):
             cd_el = row.find(class_="alcd")
             if cd_el:
                 cd_text = cd_el.get_text(" ", strip=True)
-                # Check for S01 | E02 pattern
-                tv_match = re.search(r"[sS]\s*(\d+).*?[eE]\s*(\d+)", cd_text)
-                if tv_match:
-                    season = int(tv_match.group(1))
-                    episode = int(tv_match.group(2))
+                # Try multiple patterns for season/episode detection
+                tv_patterns = [
+                    r"[sS]\s*(\d+).*?[eE]\s*(\d+)",                   # S 02 | E 10
+                    r"(\d+)\.\s*[Ss]ezon.*?(\d+)\.\s*[Bb][öo]l",      # 1. Sezon 2. Bölüm
+                    r"[Ss]ezon\s*(\d+).*?[Bb][öo]l[üu]m\s*(\d+)",     # Sezon 1 Bölüm 2
+                ]
+                for pat in tv_patterns:
+                    tv_match = re.search(pat, cd_text, re.IGNORECASE)
+                    if tv_match:
+                        season = int(tv_match.group(1))
+                        episode = int(tv_match.group(2))
+                        break
+
+                # If no season/episode found yet, check for season pack (e.g. "S 05 Paket", "5. Sezon")
+                if season is None and video.is_tv:
+                    season_pack_patterns = [
+                        r"[sS]\s*(\d+)\s*(?:[Pp]aket)?",
+                        r"(\d+)\.\s*[Ss]ezon",
+                        r"[Ss]ezon\s*(\d+)",
+                    ]
+                    for pat in season_pack_patterns:
+                        sp_match = re.search(pat, cd_text, re.IGNORECASE)
+                        if sp_match:
+                            season = int(sp_match.group(1))
+                            break
 
             # Translator
             trans_el = row.find(class_="alcevirmen")

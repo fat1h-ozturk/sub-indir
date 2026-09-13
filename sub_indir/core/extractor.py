@@ -61,20 +61,30 @@ def pick_best_subtitle(
     # For TV episodes, match episode pattern in subtitle internal filename
     if video_info.is_tv and video_info.episode is not None:
         ep = video_info.episode
+        # Patterns ordered from most specific to least specific
+        # Using negative lookahead (?!\d) to prevent E01 matching in E10
         patterns = [
-            rf"[eE]{ep:02d}\b",
-            rf"[eE]{ep}\b",
-            rf"\b{ep:02d}\b",
-            rf"b[öo]l[üu]m[ ._-]*{ep}\b",
-            rf"episode[ ._-]*{ep}\b"
+            rf"[eE](?:pisode)?[ ._-]?{ep:02d}(?!\d)",    # E01, Episode.01, e01
+            rf"[eE](?:pisode)?[ ._-]?{ep}(?!\d)",         # E1, Episode.1
+            rf"[bB][öo]l[üu]m[ ._-]*{ep}(?!\d)",          # Bölüm 1, bolum.1
         ]
+        # Collect ALL matching files first, then filter SDH
+        matching = []
         for name, data in candidates:
             for pat in patterns:
                 if re.search(pat, name, re.IGNORECASE):
-                    return name, data
+                    matching.append((name, data))
+                    break
+
+        if matching:
+            # Prefer non-SDH/HI among matched episode files
+            non_sdh = [c for c in matching if not re.search(r"(\.hi\.|\.sdh\.|[ ._-]sdh\b|[ ._-]hi\b)", c[0], re.IGNORECASE)]
+            if non_sdh:
+                return max(non_sdh, key=lambda item: len(item[1]))
+            return max(matching, key=lambda item: len(item[1]))
 
     # Exclude HI / SDH (hearing impaired) if standard is available
-    non_sdh = [c for c in candidates if not re.search(r"(\.hi\.|\.sdh\.|[ ._-]sdh\b)", c[0], re.IGNORECASE)]
+    non_sdh = [c for c in candidates if not re.search(r"(\.hi\.|\.sdh\.|[ ._-]sdh\b|[ ._-]hi\b)", c[0], re.IGNORECASE)]
     if non_sdh:
         return max(non_sdh, key=lambda item: len(item[1]))
 

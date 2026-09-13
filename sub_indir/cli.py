@@ -33,16 +33,20 @@ app = typer.Typer(
 console = Console(safe_box=True)
 
 
-@app.callback()
-def main_callback():
-    """Yalnızca Türkçe altyazıya odaklı akıllı CLI aracı."""
-    pass
-
-
 def version_callback(value: bool):
     if value:
         console.print(f"[bold cyan]sub-indir[/bold cyan] versiyon [green]{__version__}[/green]")
         raise typer.Exit()
+
+
+@app.callback()
+def main_callback(
+    version: Optional[bool] = typer.Option(
+        None, "-v", "--version", callback=version_callback, is_eager=True, help="Sürüm bilgisini gösterir."
+    ),
+):
+    """Yalnızca Türkçe altyazıya odaklı akıllı CLI aracı."""
+    pass
 
 
 def format_candidate_label(c: SubtitleCandidate) -> str:
@@ -94,12 +98,17 @@ def process_single_video(
     )
 
     # Check if subtitle already exists
-    suffix = ".srt" if no_suffix else ".tr.srt"
     if video.path:
-        expected_sub = video.path.with_suffix(suffix)
-        if expected_sub.exists() and not force:
+        suffixes_to_check = [".srt", ".ass", ".vtt"] if no_suffix else [".tr.srt", ".tr.ass", ".tr.vtt", ".srt"]
+        existing_sub = None
+        for sfx in suffixes_to_check:
+            cand = video.path.with_suffix(sfx)
+            if cand.exists():
+                existing_sub = cand
+                break
+        if existing_sub and not force:
             console.print(
-                f"[yellow][i] Altyazi dosyasi zaten mevcut:[/yellow] [dim]{expected_sub.name}[/dim] (Atlandi, tekrar indirmek icin --force kullanin)"
+                f"[yellow][i] Altyazi dosyasi zaten mevcut:[/yellow] [dim]{existing_sub.name}[/dim] (Atlandi, tekrar indirmek icin --force kullanin)"
             )
             return True
 
@@ -205,16 +214,19 @@ def download(
             console.print(f"[yellow]Klasörde video dosyası bulunamadı:[/yellow] {target_path}")
             raise typer.Exit()
 
-        console.print(f"[bold cyan]🔍 Toplam {len(video_files)} adet video dosyası bulundu.[/bold cyan]")
+        console.print(f"[bold cyan]Toplam {len(video_files)} adet video dosyasi bulundu.[/bold cyan]")
         success_count = 0
-        for vfile in video_files:
-            v_info = parse_video(vfile)
-            ok = process_single_video(manager, v_info, auto=auto, force=force, no_suffix=no_suffix)
-            if ok:
-                success_count += 1
+        try:
+            for vfile in video_files:
+                v_info = parse_video(vfile)
+                ok = process_single_video(manager, v_info, auto=auto, force=force, no_suffix=no_suffix)
+                if ok:
+                    success_count += 1
+        except KeyboardInterrupt:
+            console.print("\n[yellow]Toplu indirme iptal edildi.[/yellow]")
 
         console.print()
-        console.print(f"[bold green]Tamamlandı:[/bold green] {success_count}/{len(video_files)} video için altyazı indirildi.")
+        console.print(f"[bold green]Tamamlandi:[/bold green] {success_count}/{len(video_files)} video icin altyazi indirildi.")
         return
 
     # Case 2: Single existing video file
@@ -229,6 +241,11 @@ def download(
 
 
 def main():
+    # Allow running directly: "sub-indir ." or "sub-indir -a ." without typing "download"
+    if len(sys.argv) == 1:
+        sys.argv.insert(1, "download")
+    elif len(sys.argv) > 1 and sys.argv[1] not in ("download", "--help", "-h", "--version", "-v"):
+        sys.argv.insert(1, "download")
     app()
 
 
