@@ -157,7 +157,3 @@ set OPENSUBTITLES_API_KEY=anahtariniz
 4. Branch'inizi push edin (`git push origin feature/yeni-ozellik`).
 5. Bir Pull Request (PR) oluşturun.
 
----
-
-## 📄 Lisans
-Bu proje [MIT Lisansı](LICENSE) ile lisanslanmıştır.
