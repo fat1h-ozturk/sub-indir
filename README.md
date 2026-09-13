@@ -92,6 +92,31 @@ python3 -m pip install --user -e .
 
 ---
 
+### 🔄 Güncelleme (Nasıl Güncellenir?)
+
+Projede yeni bir sürüm çıktığında veya değişiklik yapıldığında kullanıcılar şu komutlarla kolayca güncelleyebilir:
+
+#### 1. `pipx` ile kuranlar için:
+```bash
+# Doğrudan repodan kurduysanız:
+pipx install --force git+https://github.com/fat1h-ozturk/sub-indir.git
+
+# Klonlanan klasörden kurduysanız:
+cd sub-indir
+git pull
+pipx install --force .
+```
+
+#### 2. Standart `pip` (`-e .`) ile kuranlar için:
+Projeyi `-e` (editable) parametresiyle kuranların yeniden kurulum yapmasına gerek yoktur; repoyu çekmeleri yeterlidir:
+```bash
+cd sub-indir
+git pull
+```
+*(Yeni bağımlılıklar eklendiyse: `pip install -e .`)*
+
+---
+
 ## 🚀 Kullanım (Usage)
 
 Herhangi bir terminal penceresinde filmlerinizin/dizilerinizin olduğu dizine gidin:
