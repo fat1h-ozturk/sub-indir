@@ -27,7 +27,22 @@ Sisteminizde Python 3.9 veya daha yeni bir sürümün yüklü olduğundan emin o
 
 ### 🪟 Windows İçin Kurulum
 
-#### Yöntem 1: Doğrudan Git Reposundan (Tavsiye Edilen)
+#### Yöntem 1: `pipx` ile Kurulum (İzole & En Temiz Yol)
+`pipx`, CLI araçlarını sistemdeki diğer Python paketlerini etkilemeden kendi izole ortamında kurar:
+
+```powershell
+# 1. pipx'i yükleyin ve PATH'e ekleyin (Eğer zaten yüklü değilse)
+python -m pip install --user pipx
+pipx ensurepath
+
+# (Terminali kapatıp yeniden açın, ardından repoyu klonlayıp kurun:)
+git clone https://github.com/fatihozturk-1/sub-indir.git
+cd sub-indir
+pipx install .
+```
+*(Alternatif olarak doğrudan repoyu klonlamadan tek komutla da kurabilirsiniz: `pipx install git+https://github.com/fatihozturk-1/sub-indir.git`)*
+
+#### Yöntem 2: Standart `pip` ile Kurulum (Hızlı & Pratik)
 Terminali (PowerShell veya CMD) açın ve projeyi kurun:
 
 ```powershell
