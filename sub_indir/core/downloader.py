@@ -8,6 +8,7 @@ from sub_indir.core.matcher import rank_candidates
 from sub_indir.core.extractor import extract_subtitles_from_bytes, pick_best_subtitle
 from sub_indir.core.encoding import normalize_to_utf8, save_subtitle_file
 from sub_indir.providers.base import BaseProvider
+from sub_indir.providers.embedded import EmbeddedSubtitleProvider
 from sub_indir.providers.turkcealtyazi import TurkceAltyaziProvider
 from sub_indir.providers.subliminal_provider import SubliminalProvider
 from sub_indir.providers.opensubtitles import OpenSubtitlesProvider
@@ -34,6 +35,7 @@ class SubtitleManager:
             self.providers = providers
         else:
             self.providers = [
+                EmbeddedSubtitleProvider(),
                 TurkceAltyaziProvider(),
                 SubliminalProvider(),
                 OpenSubtitlesProvider(api_key=opensubtitles_key)

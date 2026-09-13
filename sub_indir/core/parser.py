@@ -89,6 +89,53 @@ def extract_media_info(filepath: Path) -> Dict[str, Any]:
     return info
 
 
+def resolve_imdb_id(
+    title: str,
+    year: Optional[int] = None,
+    is_tv: bool = False,
+    timeout: float = 3.0
+) -> Optional[str]:
+    """Resolves IMDb ID (e.g. tt0137523) using IMDb suggestion API with timeout protection."""
+    clean = (title or "").lower().strip()
+    if not clean:
+        return None
+
+    from urllib.parse import quote
+    import httpx
+
+    encoded = quote(clean)
+    first_char = clean[0] if clean[0].isalnum() else "a"
+    url = f"https://v3.sg.media-imdb.com/suggestion/{first_char}/{encoded}.json"
+
+    try:
+        with httpx.Client(timeout=timeout) as client:
+            resp = client.get(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+            if resp.status_code == 200:
+                data = resp.json()
+                items = data.get("d", [])
+                for item in items:
+                    item_id = item.get("id", "")
+                    if not item_id.startswith("tt"):
+                        continue
+                    item_year = item.get("y")
+                    item_q = item.get("q", "").lower()
+                    is_item_tv = "tv" in item_q or "series" in item_q
+
+                    if year and item_year and abs(item_year - year) <= 1:
+                        return item_id
+                    if is_tv and is_item_tv:
+                        return item_id
+                    if not is_tv and not is_item_tv and item_q in ("feature", "movie"):
+                        return item_id
+
+                # Fallback to first valid tt item
+                if items and items[0].get("id", "").startswith("tt"):
+                    return items[0]["id"]
+    except Exception:
+        pass
+    return None
+
+
 def parse_video(file_path_or_name: Union[str, Path]) -> VideoInfo:
     """Parses video metadata from filename, parent directories, and video stream properties."""
     path = Path(file_path_or_name) if isinstance(file_path_or_name, str) else file_path_or_name
@@ -148,6 +195,13 @@ def parse_video(file_path_or_name: Union[str, Path]) -> VideoInfo:
             if not video_codec and media_info.get("video_codec"):
                 video_codec = media_info["video_codec"]
 
+    # 4. Resolve IMDb ID
+    imdb_id = resolve_imdb_id(
+        title=str(title),
+        year=int(year) if year else None,
+        is_tv=is_tv
+    )
+
     return VideoInfo(
         filename=filename,
         path=real_path,
@@ -164,4 +218,5 @@ def parse_video(file_path_or_name: Union[str, Path]) -> VideoInfo:
         is_tv=is_tv,
         file_hash=file_hash,
         file_size=file_size,
+        imdb_id=imdb_id,
     )

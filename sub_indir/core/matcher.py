@@ -42,6 +42,10 @@ def _normalize_source(source_str: str) -> str:
 def calculate_match_score(candidate: SubtitleCandidate, video: VideoInfo) -> float:
     score = 0.0
 
+    # 0. Embedded / Internal Subtitles in Video (guaranteed instant 100% sync!)
+    if candidate.provider == "embedded":
+        score += 200.0
+
     # 1. Moviehash Exact Match (guaranteed 100% frame-perfect sync!)
     if candidate.hash_matched:
         score += 150.0

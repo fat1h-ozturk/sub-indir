@@ -36,22 +36,38 @@ class TurkceAltyaziProvider(BaseProvider):
     def search(self, video: VideoInfo) -> List[SubtitleCandidate]:
         candidates: List[SubtitleCandidate] = []
         with self._get_client() as client:
-            # 1. Search for title on TurkceAltyazi
-            query = video.title.strip()
-            try:
-                res = client.get(
-                    f"{BASE_URL}/find.php",
-                    params={"cat": "sub", "find": query}
-                )
-                res.encoding = "utf-8"
-            except Exception:
-                return []
+            movie_urls = []
 
-            # Check if directly redirected to movie page (e.g. exact match)
-            if "/mov/" in str(res.url):
-                movie_urls = [str(res.url)]
-            else:
-                movie_urls = self._find_matching_movie_urls(res.text, video)
+            # 1. Search via IMDb ID first if available (exact match!)
+            if video.imdb_id:
+                try:
+                    res_imdb = client.get(
+                        f"{BASE_URL}/find.php",
+                        params={"cat": "sub", "find": video.imdb_id}
+                    )
+                    res_imdb.encoding = "utf-8"
+                    if "/mov/" in str(res_imdb.url):
+                        movie_urls.append(str(res_imdb.url))
+                    else:
+                        movie_urls.extend(self._find_matching_movie_urls(res_imdb.text, video))
+                except Exception:
+                    pass
+
+            # 2. If no movie page found via IMDb, search by title
+            if not movie_urls:
+                query = video.title.strip()
+                try:
+                    res = client.get(
+                        f"{BASE_URL}/find.php",
+                        params={"cat": "sub", "find": query}
+                    )
+                    res.encoding = "utf-8"
+                    if "/mov/" in str(res.url):
+                        movie_urls = [str(res.url)]
+                    else:
+                        movie_urls = self._find_matching_movie_urls(res.text, video)
+                except Exception:
+                    return []
 
             # 2. Extract subtitles from matched movie/series pages
             for movie_url in movie_urls[:3]:  # Top 3 matching titles

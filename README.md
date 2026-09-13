@@ -10,10 +10,12 @@ Türkiye'deki en zengin altyazı kaynağı olan **TurkceAltyazi.org** ve kürese
 
 ## 🎯 Neden sub-indir?
 
-| Özellik | Subliminal / Diğer Araçlar | **sub-indir (v0.3.0)** |
+| Özellik | Subliminal / Diğer Araçlar | **sub-indir (v0.4.0)** |
 | :--- | :---: | :---: |
+| **Gömülü (Dahili) Altyazı Çıkarma** | ❌ Yok |  **Var (MKV/MP4 içi Türkçe akışı .srt'ye aktarma)** |
+| **IMDb ID ile Akıllı Arama** | ❌ Sadece İsim |  **Var (Nokta atışı IMDb ID çapraz sorgulama)** |
 | **TurkceAltyazi.org Desteği** | ❌ Yok |  **Var (Doğrudan & Ücretsiz)** |
-| **Subliminal / OpenSubtitles Desteği** | ⚠️ Karmaşık yapılandırma |  **Var (Dahili, API Key Gerekmez)** |
+| **Çoklu Sağlayıcı Havuzu** | ⚠️ Tek tek yapılandırma |  **Var (Gömülü + TurkceAltyazi + OpenSubtitles + BSPlayer + Podnapisi)** |
 | **Türkçe Odaklılık** | ⚠️ Global (TR çeviriler genelde eksik) |  **%100 Türkçe Odaklı** |
 | **Senkronizasyon Motoru** | ⚪ Yalnızca Hash / Basit Eşleşme |  **Gelişmiş Uyum Motoru (HDTV Cezası, P2P Re-Encode Uyum, Gerçek FPS)** |
 | **Karakter Kodlaması (Encoding)** | ⚠️ Sık sık bozuk karakterler (`ş, ğ, ı`) |  **Otomatik Kusursuz UTF-8 & Mojibake Onarımı** |

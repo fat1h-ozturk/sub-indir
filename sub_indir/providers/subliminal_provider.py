@@ -42,6 +42,20 @@ class SubliminalProvider(BaseProvider):
                 v.hashes["opensubtitles"] = video.file_hash
                 v.size = video.file_size
 
+            # Inject BSPlayer hash if video file exists on disk
+            if video.path and video.path.exists():
+                try:
+                    from subliminal.providers.bsplayer import BSPlayerProvider as SubBSPlayer
+                    bs_hash = SubBSPlayer.hash_video(str(video.path))
+                    if bs_hash:
+                        v.hashes["bsplayer"] = bs_hash
+                except Exception as e:
+                    logger.debug(f"BSPlayer hash error: {e}")
+
+            # Inject IMDb ID if available
+            if video.imdb_id:
+                v.imdb_id = video.imdb_id
+
             # Inject known metadata if available
             if video.screen_size and not getattr(v, "resolution", None):
                 v.resolution = video.screen_size
@@ -50,7 +64,7 @@ class SubliminalProvider(BaseProvider):
 
             # Query subliminal provider pool specifically for Turkish (Language('tur'))
             # Use free providers that do not require an API key to download
-            free_providers = ["opensubtitles", "podnapisi"]
+            free_providers = ["opensubtitles", "podnapisi", "bsplayer"]
             subtitles_dict = subliminal.list_subtitles(
                 [v],
                 {Language("tur")},

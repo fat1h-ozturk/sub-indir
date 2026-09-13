@@ -58,7 +58,21 @@ def format_candidate_label(c: SubtitleCandidate) -> str:
     downloads = f"{c.downloads:,} indirme" if c.downloads else ""
     rip = f"[{c.release_info[:40]}...]" if len(c.release_info) > 40 else f"[{c.release_info}]"
 
-    prov_tag = "[TurkceAltyazi]" if c.provider == "turkcealtyazi" else "[OpenSubtitles]"
+    if c.provider == "embedded":
+        prov_tag = "[Gömülü]"
+    elif c.provider == "turkcealtyazi":
+        prov_tag = "[TurkceAltyazi]"
+    elif c.provider in ["subliminal", "opensubtitles"]:
+        sub_prov = str(c.extra_data.get("sub_provider", "")).lower()
+        if "bsplayer" in sub_prov:
+            prov_tag = "[BSPlayer]"
+        elif "podnapisi" in sub_prov:
+            prov_tag = "[Podnapisi]"
+        else:
+            prov_tag = "[OpenSubtitles]"
+    else:
+        prov_tag = f"[{c.provider}]"
+
     sync_badge = " [bold green]★ HASH[/bold green]" if c.hash_matched else ""
 
     meta_parts = [p for p in [prov_tag, episode_info, translator, fps, downloads] if p]
@@ -77,6 +91,8 @@ def process_single_video(
     meta_lines = [
         f"[bold white]Başlık:[/bold white] [cyan]{video.title}[/cyan]",
     ]
+    if video.imdb_id:
+        meta_lines.append(f"[bold white]IMDb ID:[/bold white] [magenta]{video.imdb_id}[/magenta]")
     if video.is_tv:
         meta_lines.append(
             f"[bold white]Bölüm:[/bold white] [yellow]Sezon {video.season}, Bölüm {video.episode}[/yellow]"
@@ -116,7 +132,7 @@ def process_single_video(
             )
             return True
 
-    with console.status("[bold green]Turkce ve senkronize altyazilar araniyor (TurkceAltyazi + OpenSubtitles)...[/bold green]", spinner="dots"):
+    with console.status("[bold green]Turkce ve senkronize altyazilar araniyor (Gomulu + TurkceAltyazi + OpenSubtitles + BSPlayer)...[/bold green]", spinner="dots"):
         candidates = manager.find_subtitles(video)
 
     if not candidates:
@@ -145,7 +161,20 @@ def process_single_video(
 
         for idx, c in enumerate(candidates[:12], start=1):
             score_display = f"{c.score:.0f} ★" if c.hash_matched else f"{c.score:.0f}"
-            prov_display = "TurkceAltyazi" if c.provider == "turkcealtyazi" else "OpenSubtitles"
+            if c.provider == "embedded":
+                prov_display = "Gömülü"
+            elif c.provider == "turkcealtyazi":
+                prov_display = "TurkceAltyazi"
+            elif c.provider in ["subliminal", "opensubtitles"]:
+                sub_prov = str(c.extra_data.get("sub_provider", "")).lower()
+                if "bsplayer" in sub_prov:
+                    prov_display = "BSPlayer"
+                elif "podnapisi" in sub_prov:
+                    prov_display = "Podnapisi"
+                else:
+                    prov_display = "OpenSubtitles"
+            else:
+                prov_display = c.provider
             row_items = [str(idx), score_display, prov_display]
             if video.is_tv:
                 ep_str = f"S{c.season:02d}E{c.episode:02d}" if c.season and c.episode else "-"

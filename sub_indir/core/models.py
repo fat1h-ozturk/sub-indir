@@ -20,6 +20,7 @@ class VideoInfo:
     is_tv: bool = False
     file_hash: Optional[str] = None
     file_size: Optional[int] = None
+    imdb_id: Optional[str] = None
 
     @property
     def display_name(self) -> str:
