@@ -1,0 +1,236 @@
+import os
+import sys
+from pathlib import Path
+from typing import Optional, List
+
+import typer
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+from rich import box
+from InquirerPy import inquirer
+from InquirerPy.base.control import Choice
+
+from sub_indir import __version__
+from sub_indir.core.parser import parse_video, is_video_file, VIDEO_EXTENSIONS
+from sub_indir.core.models import VideoInfo, SubtitleCandidate
+from sub_indir.core.downloader import SubtitleManager
+
+
+# Configure UTF-8 encoding for Windows console
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+app = typer.Typer(
+    name="sub-indir",
+    help="Yalnızca Türkçe altyazıya odaklı, akıllı altyazı indirme CLI aracı.",
+    add_completion=False,
+)
+console = Console(safe_box=True)
+
+
+@app.callback()
+def main_callback():
+    """Yalnızca Türkçe altyazıya odaklı akıllı CLI aracı."""
+    pass
+
+
+def version_callback(value: bool):
+    if value:
+        console.print(f"[bold cyan]sub-indir[/bold cyan] versiyon [green]{__version__}[/green]")
+        raise typer.Exit()
+
+
+def format_candidate_label(c: SubtitleCandidate) -> str:
+    episode_info = ""
+    if c.season is not None and c.episode is not None:
+        episode_info = f"S{c.season:02d}E{c.episode:02d} | "
+
+    translator = f"Çeviri: {c.translator}" if c.translator else "Çevirmen: Bilinmiyor"
+    fps = f"{c.fps} FPS" if c.fps else ""
+    downloads = f"{c.downloads:,} indirme" if c.downloads else ""
+    rip = f"[{c.release_info[:45]}...]" if len(c.release_info) > 45 else f"[{c.release_info}]"
+
+    meta_parts = [p for p in [episode_info, translator, fps, downloads] if p]
+    meta_str = " | ".join(meta_parts)
+    return f"({c.score:.0f}p) {meta_str} {rip}"
+
+
+def process_single_video(
+    manager: SubtitleManager,
+    video: VideoInfo,
+    auto: bool = False,
+    force: bool = False,
+    no_suffix: bool = False
+) -> bool:
+    console.print()
+    meta_lines = [
+        f"[bold white]Başlık:[/bold white] [cyan]{video.title}[/cyan]",
+    ]
+    if video.is_tv:
+        meta_lines.append(
+            f"[bold white]Bölüm:[/bold white] [yellow]Sezon {video.season}, Bölüm {video.episode}[/yellow]"
+        )
+    if video.year:
+        meta_lines.append(f"[bold white]Yıl:[/bold white] [magenta]{video.year}[/magenta]")
+    if video.release_group:
+        meta_lines.append(f"[bold white]Release:[/bold white] [green]{video.release_group}[/green]")
+    if video.screen_size:
+        meta_lines.append(f"[bold white]Çözünürlük:[/bold white] {video.screen_size}")
+    if video.source:
+        meta_lines.append(f"[bold white]Kaynak:[/bold white] {video.source}")
+
+    console.print(
+        Panel(
+            "\n".join(meta_lines),
+            title=f"[bold cyan]> {video.display_name}[/bold cyan]",
+            border_style="cyan",
+            box=box.ROUNDED,
+        )
+    )
+
+    # Check if subtitle already exists
+    suffix = ".srt" if no_suffix else ".tr.srt"
+    if video.path:
+        expected_sub = video.path.with_suffix(suffix)
+        if expected_sub.exists() and not force:
+            console.print(
+                f"[yellow][i] Altyazi dosyasi zaten mevcut:[/yellow] [dim]{expected_sub.name}[/dim] (Atlandi, tekrar indirmek icin --force kullanin)"
+            )
+            return True
+
+    with console.status("[bold green]TurkceAltyazi taraniyor...[/bold green]", spinner="dots"):
+        candidates = manager.find_subtitles(video)
+
+    if not candidates:
+        console.print("[red][X] Eslesen Turkce altyazi bulunamadi.[/red]")
+        return False
+
+    console.print(f"[green][V] Toplam {len(candidates)} adet altyazi bulundu.[/green]")
+
+    selected_candidate: Optional[SubtitleCandidate] = None
+
+    if auto or len(candidates) == 1:
+        selected_candidate = candidates[0]
+        console.print(f"[cyan][*] En iyi eslesme otomatik secildi:[/cyan] [bold]{selected_candidate.release_info or selected_candidate.title}[/bold] ([yellow]{selected_candidate.score:.0f}p[/yellow])")
+    else:
+        # Show table of top candidates
+        table = Table(box=box.SIMPLE_HEAVY, show_header=True, header_style="bold cyan")
+        table.add_column("#", style="dim", width=4)
+        table.add_column("Puan", justify="right", style="yellow")
+        if video.is_tv:
+            table.add_column("Bölüm", style="magenta")
+        table.add_column("Çevirmen", style="green")
+        table.add_column("FPS", style="blue")
+        table.add_column("İndirme", justify="right")
+        table.add_column("Uyumlu Sürümler (Rip)", style="white")
+
+        for idx, c in enumerate(candidates[:10], start=1):
+            row_items = [str(idx), f"{c.score:.0f}"]
+            if video.is_tv:
+                ep_str = f"S{c.season:02d}E{c.episode:02d}" if c.season and c.episode else "-"
+                row_items.append(ep_str)
+            row_items.extend([
+                c.translator or "-",
+                c.fps or "-",
+                f"{c.downloads:,}" if c.downloads else "-",
+                (c.release_info[:50] + "...") if len(c.release_info) > 50 else (c.release_info or "-")
+            ])
+            table.add_row(*row_items)
+
+        console.print(table)
+
+        # Interactive selector
+        choices = [
+            Choice(c, name=format_candidate_label(c))
+            for c in candidates[:15]
+        ]
+        choices.append(Choice(None, name="[Vazgeç / İptal et]"))
+
+        try:
+            selected_candidate = inquirer.select(
+                message="İndirmek istediğiniz altyazıyı seçin:",
+                choices=choices,
+                default=candidates[0]
+            ).execute()
+        except KeyboardInterrupt:
+            console.print("\n[yellow]İşlem iptal edildi.[/yellow]")
+            return False
+
+        if not selected_candidate:
+            console.print("[yellow]İndirme atlandı.[/yellow]")
+            return False
+
+    with console.status("[bold cyan]Altyazi indiriliyor ve UTF-8'e donusturuluyor...[/bold cyan]", spinner="dots"):
+        res = manager.download_and_save(
+            candidate=selected_candidate,
+            video=video,
+            add_language_suffix=not no_suffix
+        )
+
+    if res.success and res.subtitle_path:
+        console.print(f"[bold green][V] Altyazi kaydedildi:[/bold green] [underline white]{res.subtitle_path}[/underline white]")
+        return True
+    else:
+        console.print(f"[bold red][X] Hata:[/bold red] {res.message}")
+        return False
+
+
+@app.command(name="download", help="Video dosyası veya klasör için Türkçe altyazı indirir.")
+def download(
+    target: str = typer.Argument(".", help="Video dosya yolu, klasör veya arama metni (Varsayılan: bulunulan dizin '.')"),
+    auto: bool = typer.Option(False, "-a", "--auto", help="Kullanıcıya sormadan en yüksek puanlı altyazıyı otomatik indirir"),
+    force: bool = typer.Option(False, "-f", "--force", help="Altyazı dosyası zaten varsa üzerine yazar"),
+    recursive: bool = typer.Option(False, "-r", "--recursive", help="Klasör belirtildiğinde alt klasörleri de tarar"),
+    no_suffix: bool = typer.Option(False, "--no-suffix", help="'.tr.srt' yerine doğrudan '.srt' olarak kaydeder"),
+    lang: Optional[str] = typer.Option(None, "-l", "--lang", hidden=True, help="Uyumluluk için opsiyonel dil parametresi"),
+    version: Optional[bool] = typer.Option(None, "-v", "--version", callback=version_callback, is_eager=True),
+):
+    target_path = Path(target)
+    manager = SubtitleManager()
+
+    # Case 1: Directory scan
+    if target_path.exists() and target_path.is_dir():
+        pattern = "**/*" if recursive else "*"
+        video_files: List[Path] = [
+            f for f in target_path.glob(pattern)
+            if f.is_file() and f.suffix.lower() in VIDEO_EXTENSIONS
+        ]
+
+        if not video_files:
+            console.print(f"[yellow]Klasörde video dosyası bulunamadı:[/yellow] {target_path}")
+            raise typer.Exit()
+
+        console.print(f"[bold cyan]🔍 Toplam {len(video_files)} adet video dosyası bulundu.[/bold cyan]")
+        success_count = 0
+        for vfile in video_files:
+            v_info = parse_video(vfile)
+            ok = process_single_video(manager, v_info, auto=auto, force=force, no_suffix=no_suffix)
+            if ok:
+                success_count += 1
+
+        console.print()
+        console.print(f"[bold green]Tamamlandı:[/bold green] {success_count}/{len(video_files)} video için altyazı indirildi.")
+        return
+
+    # Case 2: Single existing video file
+    if target_path.exists() and target_path.is_file():
+        v_info = parse_video(target_path)
+        process_single_video(manager, v_info, auto=auto, force=force, no_suffix=no_suffix)
+        return
+
+    # Case 3: Title query string (e.g. "Severance S02E01" or "Inception 2010")
+    v_info = parse_video(target)
+    process_single_video(manager, v_info, auto=auto, force=force, no_suffix=no_suffix)
+
+
+def main():
+    app()
+
+
+if __name__ == "__main__":
+    main()
