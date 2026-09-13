@@ -38,18 +38,18 @@ python -m pip install --user pipx
 pipx ensurepath
 
 # (Terminali kapatıp yeniden açın, ardından repoyu klonlayıp kurun:)
-git clone https://github.com/fatihozturk-1/sub-indir.git
+git clone https://github.com/fat1h-ozturk/sub-indir.git
 cd sub-indir
 pipx install .
 ```
-*(Alternatif olarak doğrudan repoyu klonlamadan tek komutla da kurabilirsiniz: `pipx install git+https://github.com/fatihozturk-1/sub-indir.git`)*
+*(Alternatif olarak doğrudan repoyu klonlamadan tek komutla da kurabilirsiniz: `pipx install git+https://github.com/fat1h-ozturk/sub-indir.git`)*
 
 #### Yöntem 2: Standart `pip` ile Kurulum (Hızlı & Pratik)
 Terminali (PowerShell veya CMD) açın ve projeyi kurun:
 
 ```powershell
 # 1. Repoyu klonlayın
-git clone https://github.com/fatihozturk-1/sub-indir.git
+git clone https://github.com/fat1h-ozturk/sub-indir.git
 cd sub-indir
 
 # 2. Sistem genelinde (Global) CLI olarak kurun
@@ -75,14 +75,14 @@ sudo pacman -S python-pipx git
 pipx ensurepath
 
 # Repoyu klonlayıp kurun
-git clone https://github.com/fatihozturk-1/sub-indir.git
+git clone https://github.com/fat1h-ozturk/sub-indir.git
 cd sub-indir
 pipx install .
 ```
 
 #### Yöntem B: Standart `pip` ile Kurulum
 ```bash
-git clone https://github.com/fatihozturk-1/sub-indir.git
+git clone https://github.com/fat1h-ozturk/sub-indir.git
 cd sub-indir
 
 # Kullanıcı ortamına kurun
