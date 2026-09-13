@@ -15,6 +15,8 @@ class VideoInfo:
     source: Optional[str] = None
     screen_size: Optional[str] = None
     video_codec: Optional[str] = None
+    fps: Optional[float] = None
+    duration: Optional[float] = None
     is_tv: bool = False
     file_hash: Optional[str] = None
     file_size: Optional[int] = None
@@ -42,6 +44,7 @@ class SubtitleCandidate:
     downloads: int = 0
     detail_url: str = ""
     score: float = 0.0
+    hash_matched: bool = False
     extra_data: Dict[str, Any] = field(default_factory=dict)
 
     @property

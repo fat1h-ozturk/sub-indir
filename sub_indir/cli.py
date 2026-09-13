@@ -53,14 +53,17 @@ def format_candidate_label(c: SubtitleCandidate) -> str:
     if c.season is not None and c.episode is not None:
         episode_info = f"S{c.season:02d}E{c.episode:02d} | "
 
-    translator = f"Çeviri: {c.translator}" if c.translator else "Çevirmen: Bilinmiyor"
+    translator = f"Çeviri: {c.translator}" if c.translator else ""
     fps = f"{c.fps} FPS" if c.fps else ""
     downloads = f"{c.downloads:,} indirme" if c.downloads else ""
-    rip = f"[{c.release_info[:45]}...]" if len(c.release_info) > 45 else f"[{c.release_info}]"
+    rip = f"[{c.release_info[:40]}...]" if len(c.release_info) > 40 else f"[{c.release_info}]"
 
-    meta_parts = [p for p in [episode_info, translator, fps, downloads] if p]
+    prov_tag = "[TurkceAltyazi]" if c.provider == "turkcealtyazi" else "[OpenSubtitles]"
+    sync_badge = " [bold green]★ HASH[/bold green]" if c.hash_matched else ""
+
+    meta_parts = [p for p in [prov_tag, episode_info, translator, fps, downloads] if p]
     meta_str = " | ".join(meta_parts)
-    return f"({c.score:.0f}p) {meta_str} {rip}"
+    return f"({c.score:.0f}p{sync_badge}) {meta_str} {rip}"
 
 
 def process_single_video(
@@ -86,6 +89,8 @@ def process_single_video(
         meta_lines.append(f"[bold white]Çözünürlük:[/bold white] {video.screen_size}")
     if video.source:
         meta_lines.append(f"[bold white]Kaynak:[/bold white] {video.source}")
+    if video.fps:
+        meta_lines.append(f"[bold white]FPS (Akış):[/bold white] [blue]{video.fps}[/blue]")
 
     console.print(
         Panel(
@@ -111,7 +116,7 @@ def process_single_video(
             )
             return True
 
-    with console.status("[bold green]TurkceAltyazi taraniyor...[/bold green]", spinner="dots"):
+    with console.status("[bold green]Turkce ve senkronize altyazilar araniyor (TurkceAltyazi + OpenSubtitles)...[/bold green]", spinner="dots"):
         candidates = manager.find_subtitles(video)
 
     if not candidates:
@@ -130,15 +135,18 @@ def process_single_video(
         table = Table(box=box.SIMPLE_HEAVY, show_header=True, header_style="bold cyan")
         table.add_column("#", style="dim", width=4)
         table.add_column("Puan", justify="right", style="yellow")
+        table.add_column("Sağlayıcı", style="cyan")
         if video.is_tv:
             table.add_column("Bölüm", style="magenta")
-        table.add_column("Çevirmen", style="green")
+        table.add_column("Çevirmen / Tip", style="green")
         table.add_column("FPS", style="blue")
         table.add_column("İndirme", justify="right")
         table.add_column("Uyumlu Sürümler (Rip)", style="white")
 
-        for idx, c in enumerate(candidates[:10], start=1):
-            row_items = [str(idx), f"{c.score:.0f}"]
+        for idx, c in enumerate(candidates[:12], start=1):
+            score_display = f"{c.score:.0f} ★" if c.hash_matched else f"{c.score:.0f}"
+            prov_display = "TurkceAltyazi" if c.provider == "turkcealtyazi" else "OpenSubtitles"
+            row_items = [str(idx), score_display, prov_display]
             if video.is_tv:
                 ep_str = f"S{c.season:02d}E{c.episode:02d}" if c.season and c.episode else "-"
                 row_items.append(ep_str)
@@ -146,7 +154,7 @@ def process_single_video(
                 c.translator or "-",
                 c.fps or "-",
                 f"{c.downloads:,}" if c.downloads else "-",
-                (c.release_info[:50] + "...") if len(c.release_info) > 50 else (c.release_info or "-")
+                (c.release_info[:45] + "...") if len(c.release_info) > 45 else (c.release_info or "-")
             ])
             table.add_row(*row_items)
 

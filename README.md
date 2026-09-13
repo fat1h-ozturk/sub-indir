@@ -2,22 +2,24 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/)
 
-**sub-indir**, yabancı dizi ve filmler için **yalnızca Türkçe altyazılara odaklanan**, Subliminal alternatifi modern ve akıllı bir komut satırı (CLI) aracıdır.
+**sub-indir**, yabancı dizi ve filmler için **yalnızca Türkçe altyazılara odaklanan**, Subliminal'in tüm gücünü ve Türkiye'nin yerel kaynaklarını bir araya getiren akıllı bir komut satırı (CLI) aracıdır.
 
-Türkiye'deki en zengin ve güncel altyazı kaynağı olan **TurkceAltyazi.org** üzerinden doğrudan arama ve indirme yapar. Video dosyanızın release grubunu (`FLUX`, `RARBG`, `PSA`, `YTS` vb.) analiz ederek **senkronize altyazıyı** otomatik eşler ve eski kodlamalı altyazıları (`Windows-1254` / `ISO-8859-9`) kayıpsız şekilde **UTF-8'e** dönüştürür.
+Türkiye'deki en zengin altyazı kaynağı olan **TurkceAltyazi.org** ve küresel altyazı havuzlarını (**Subliminal / OpenSubtitles / Podnapisi**) aynı anda tarar. Video dosyanızın başlıklarını, klasör yolunu ve akış meta verilerini (`FPS`, `1080p`, `x265`, `Joy`, `PSA`, `FLUX`, `RARBG` vb.) analiz ederek **tam senkron altyazıyı** otomatik seçer ve tüm dosyaları kayıpsız şekilde **UTF-8'e** dönüştürür.
 
 ---
 
 ## 🎯 Neden sub-indir?
 
-| Özellik | Subliminal / Diğer Araçlar | **sub-indir** |
+| Özellik | Subliminal / Diğer Araçlar | **sub-indir (v0.3.0)** |
 | :--- | :---: | :---: |
 | **TurkceAltyazi.org Desteği** | ❌ Yok |  **Var (Doğrudan & Ücretsiz)** |
+| **Subliminal / OpenSubtitles Desteği** | ⚠️ Karmaşık yapılandırma |  **Var (Dahili, API Key Gerekmez)** |
 | **Türkçe Odaklılık** | ⚠️ Global (TR çeviriler genelde eksik) |  **%100 Türkçe Odaklı** |
-| **Karakter Kodlaması (Encoding)** | ⚠️ Sık sık bozuk karakterler (`ş, ğ, ı`) |  **Otomatik Kusursuz UTF-8** |
-| **Release Grubu Eşleştirme** | ⚠️ Sadece hash / kısıtlı regex |  **`guessit` ile %99 Doğruluk** |
+| **Senkronizasyon Motoru** | ⚪ Yalnızca Hash / Basit Eşleşme |  **Gelişmiş Uyum Motoru (HDTV Cezası, P2P Re-Encode Uyum, Gerçek FPS)** |
+| **Karakter Kodlaması (Encoding)** | ⚠️ Sık sık bozuk karakterler (`ş, ğ, ı`) |  **Otomatik Kusursuz UTF-8 & Mojibake Onarımı** |
+| **Klasör & Akış Analizi** | ⚪ Sadece dosya adı |  **Üst Dizin + `pymediainfo` Gerçek FPS Okuma** |
 | **Arşiv (.zip) Yönetimi** | ⚠️ Bazen elle açmak gerekir |  **Otomatik Açıp İsimlendirir** |
-| **Arayüz (CLI UX)** | ⚪ Basit terminal çıktısı |  **Renkli Tablolar & İnteraktif Menü** |
+| **Arayüz (CLI UX)** | ⚪ Basit terminal çıktısı |  **Renkli Tablolar & İnteraktif Seçim Menüsü** |
 
 ---
 

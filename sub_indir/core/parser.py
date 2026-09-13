@@ -1,6 +1,6 @@
 from pathlib import Path
 import struct
-from typing import Optional, Union
+from typing import Optional, Union, Dict, Any
 from guessit import guessit
 
 from sub_indir.core.models import VideoInfo
@@ -44,13 +44,69 @@ def compute_moviehash(filepath: Path) -> tuple[Optional[str], Optional[int]]:
         return None, None
 
 
+def extract_media_info(filepath: Path) -> Dict[str, Any]:
+    """Extracts actual video stream FPS, resolution, codec, and duration using pymediainfo if available."""
+    info: Dict[str, Any] = {}
+    try:
+        from pymediainfo import MediaInfo
+        media_info = MediaInfo.parse(str(filepath))
+        for track in media_info.tracks:
+            if track.track_type == "Video":
+                if track.frame_rate:
+                    try:
+                        info["fps"] = round(float(track.frame_rate), 3)
+                    except (ValueError, TypeError):
+                        pass
+                if track.height:
+                    try:
+                        h = int(track.height)
+                        if h >= 2000:
+                            info["screen_size"] = "2160p"
+                        elif h >= 1000:
+                            info["screen_size"] = "1080p"
+                        elif h >= 700:
+                            info["screen_size"] = "720p"
+                        elif h >= 480:
+                            info["screen_size"] = "480p"
+                    except (ValueError, TypeError):
+                        pass
+                if track.format:
+                    fmt = str(track.format).upper()
+                    if "HEVC" in fmt or "H.265" in fmt:
+                        info["video_codec"] = "H.265"
+                    elif "AVC" in fmt or "H.264" in fmt:
+                        info["video_codec"] = "H.264"
+                    elif "AV1" in fmt:
+                        info["video_codec"] = "AV1"
+                if track.duration:
+                    try:
+                        info["duration"] = round(float(track.duration) / 1000.0, 1)
+                    except (ValueError, TypeError):
+                        pass
+                break
+    except Exception:
+        pass
+    return info
+
+
 def parse_video(file_path_or_name: Union[str, Path]) -> VideoInfo:
-    """Parses video metadata from filename or Path using guessit."""
+    """Parses video metadata from filename, parent directories, and video stream properties."""
     path = Path(file_path_or_name) if isinstance(file_path_or_name, str) else file_path_or_name
     filename = path.name
-    
-    guess = guessit(filename)
-    
+
+    # 1. Parse filename with guessit
+    guess = dict(guessit(filename))
+
+    # 2. Check parent folder name if available (vital for folders like "The Walking Dead Season 3 (1080p x265 Joy)")
+    if path.parent and path.parent != Path(".") and path.parent.name:
+        try:
+            parent_guess = dict(guessit(path.parent.name))
+            for key in ["release_group", "screen_size", "video_codec", "source", "season", "year"]:
+                if not guess.get(key) and parent_guess.get(key):
+                    guess[key] = parent_guess[key]
+        except Exception:
+            pass
+
     title = guess.get("title", path.stem)
     year = guess.get("year")
     season = guess.get("season")
@@ -68,17 +124,29 @@ def parse_video(file_path_or_name: Union[str, Path]) -> VideoInfo:
         episode = episode[0]
     if isinstance(year, list):
         year = year[0]
-    
+
     # TV vs Movie check
     is_tv = bool(season is not None or episode is not None or guess.get("type") == "episode")
-    
+
     file_hash = None
     file_size = None
     real_path = None
-    
+    fps = None
+    duration = None
+
     if path.exists() and path.is_file():
         real_path = path.resolve()
         file_hash, file_size = compute_moviehash(real_path)
+
+        # 3. Extract actual stream properties (FPS, resolution, codec, duration) from the container
+        media_info = extract_media_info(real_path)
+        if media_info:
+            fps = media_info.get("fps")
+            duration = media_info.get("duration")
+            if not screen_size and media_info.get("screen_size"):
+                screen_size = media_info["screen_size"]
+            if not video_codec and media_info.get("video_codec"):
+                video_codec = media_info["video_codec"]
 
     return VideoInfo(
         filename=filename,
@@ -91,6 +159,8 @@ def parse_video(file_path_or_name: Union[str, Path]) -> VideoInfo:
         source=str(source) if source else None,
         screen_size=str(screen_size) if screen_size else None,
         video_codec=str(video_codec) if video_codec else None,
+        fps=fps,
+        duration=duration,
         is_tv=is_tv,
         file_hash=file_hash,
         file_size=file_size,
