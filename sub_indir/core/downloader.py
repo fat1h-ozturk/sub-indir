@@ -57,6 +57,9 @@ class SubtitleManager:
         add_language_suffix: bool = True
     ) -> DownloadResult:
         """Downloads, unpacks, converts to UTF-8 and saves the subtitle."""
+        if isinstance(candidate, dict):
+            candidate = SubtitleCandidate(**candidate)
+
         provider = next((p for p in self.providers if p.name == candidate.provider), None)
         if not provider:
             return DownloadResult(

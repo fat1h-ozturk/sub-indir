@@ -9,7 +9,6 @@ from rich.panel import Panel
 from rich.table import Table
 from rich import box
 from InquirerPy import inquirer
-from InquirerPy.base.control import Choice
 
 from sub_indir import __version__
 from sub_indir.core.parser import parse_video, is_video_file, VIDEO_EXTENSIONS
@@ -153,26 +152,28 @@ def process_single_video(
 
         console.print(table)
 
-        # Interactive selector
+        # Interactive selector (use indices to avoid InquirerPy's asdict() corrupting SubtitleCandidate)
         choices = [
-            Choice(c, name=format_candidate_label(c))
-            for c in candidates[:15]
+            {"name": format_candidate_label(c), "value": idx}
+            for idx, c in enumerate(candidates[:15])
         ]
-        choices.append(Choice(None, name="[Vazgeç / İptal et]"))
+        choices.append({"name": "[Vazgeç / İptal et]", "value": None})
 
         try:
-            selected_candidate = inquirer.select(
+            selected_idx = inquirer.select(
                 message="İndirmek istediğiniz altyazıyı seçin:",
                 choices=choices,
-                default=candidates[0]
+                default=0
             ).execute()
         except KeyboardInterrupt:
             console.print("\n[yellow]İşlem iptal edildi.[/yellow]")
             return False
 
-        if not selected_candidate:
+        if selected_idx is None:
             console.print("[yellow]İndirme atlandı.[/yellow]")
             return False
+
+        selected_candidate = candidates[selected_idx]
 
     with console.status("[bold cyan]Altyazi indiriliyor ve UTF-8'e donusturuluyor...[/bold cyan]", spinner="dots"):
         res = manager.download_and_save(
