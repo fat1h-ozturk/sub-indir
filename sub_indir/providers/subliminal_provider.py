@@ -139,10 +139,19 @@ class SubliminalProvider(BaseProvider):
         if not sub:
             raise ValueError("Candidate does not contain a valid Subliminal subtitle object")
 
+        sub_provider = candidate.extra_data.get("sub_provider", "subliminal")
+
         try:
-            subliminal.download_subtitles([sub])
+            # Sadece ilgili sağlayıcıyı başlatarak performansı artırıyoruz
+            subliminal.download_subtitles([sub], providers=[sub_provider])
             if not sub.content:
-                raise RuntimeError("Subliminal altyazı içeriğini indiremedi (boş yanıt).")
+                raise RuntimeError(
+                    f"{sub_provider.capitalize()} sağlayıcısından altyazı indirilemedi "
+                    "(boş yanıt). Dosya sunucuda bozuk veya silinmiş olabilir. "
+                    "Lütfen listeden başka bir altyazı seçmeyi deneyin."
+                )
             return sub.content
+        except RuntimeError:
+            raise
         except Exception as e:
-            raise RuntimeError(f"Subliminal indirme hatası: {e}")
+            raise RuntimeError(f"Subliminal ({sub_provider}) indirme hatası: {e}")
